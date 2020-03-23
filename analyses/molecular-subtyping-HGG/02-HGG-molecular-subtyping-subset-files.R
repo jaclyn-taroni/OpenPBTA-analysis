@@ -41,7 +41,9 @@ metadata <-
 select_metadata <- metadata %>%
   dplyr::select(sample_id,
                 Kids_First_Participant_ID,
-                Kids_First_Biospecimen_ID)
+                Kids_First_Biospecimen_ID,
+                sample_type,
+                composition)
 
 # Read in RNA expression data
 stranded_expression <-
@@ -177,7 +179,9 @@ cn_metadata <- cn_df %>%
                 Kids_First_Participant_ID,
                 biospecimen_id,
                 status,
-                cytoband) %>%
+                cytoband,
+                composition,
+                sample_type) %>%
   dplyr::filter(biospecimen_id %in% hgg_metadata_df$Kids_First_Biospecimen_ID) %>%
   dplyr::distinct() # Remove duplicate rows produced as a result of not
 # including the copy number variable from `cn_df`
@@ -205,8 +209,11 @@ gistic_df <- gistic_df %>%
   tibble::rownames_to_column("Kids_First_Biospecimen_ID") %>%
   dplyr::left_join(select_metadata, by = "Kids_First_Biospecimen_ID") %>%
   dplyr::filter(Kids_First_Biospecimen_ID %in% hgg_metadata_df$Kids_First_Biospecimen_ID) %>%
-  dplyr::select(sample_id,
+  dplyr::select(Kids_First_Participant_ID,
+                sample_id,
                 Kids_First_Biospecimen_ID,
+                composition,
+                sample_type,
                 `1p`,
                 `19q`,
                 `7p`,
