@@ -56,7 +56,8 @@ data_dir <- file.path(root_dir, "data")
 ```{r message=FALSE}
 cn_gistic_df <- read_tsv(file.path(results_dir, "HGG_cleaned_cnv.tsv"))
 mutation_df <- read_tsv(file.path(results_dir, "HGG_cleaned_mutation.tsv"))
-histologies_df <- read_tsv(file.path(data_dir, "pbta-histologies.tsv"))
+histologies_df <- read_tsv(file.path(data_dir, "pbta-histologies.tsv"),
+                           guess_max = 10000)
 fusion_df <- read_tsv(file.path(results_dir, "HGG_cleaned_fusion.tsv"))
 polya_exp <- read_tsv(file.path(results_dir, 
                                 "HGG_cleaned_expression.polya.tsv"))
@@ -196,7 +197,8 @@ head(rna_df, n = 10)
 rna_df <- histologies_df %>%
   select(Kids_First_Participant_ID,
          sample_id, 
-         Kids_First_Biospecimen_ID) %>%
+         Kids_First_Biospecimen_ID,
+         composition) %>%
   inner_join(rna_df)
 ```
 
@@ -204,29 +206,13 @@ rna_df <- histologies_df %>%
 rm(fusion_df, exp_df)
 ```
 
-Are there duplicated `sample_id` in the RNA data frame?
-
-```{r}
-any(duplicated(rna_df$sample_id))
-```
-What are they?
-
-```{r}
-histologies_df %>%
-  filter(sample_id %in% rna_df$sample_id[which(duplicated(rna_df$sample_id))],
-         experimental_strategy == "RNA-Seq") %>%
-  group_by(sample_id) %>%
-  summarize(RNA_library = paste(RNA_library, collapse = ", "))
-```
-
-There are 2 instances where there are two stranded biospecimen IDs that map to the same `sample_id`.
-
 ### All Data
 
 ```{r}
 all_data_df <- left_join(dna_df, rna_df,
                          by = c("Kids_First_Participant_ID",
-                                "sample_id"),
+                                "sample_id",
+                                "composition"),
                                 suffix = c("_DNA", "_RNA")) %>%
   select(starts_with("Kids_First"), sample_id, everything())
 
@@ -238,11 +224,10 @@ Add in brain region and age.
 ```{r}
 relevant_clinical_df <- histologies_df %>%
   filter(sample_id %in% all_data_df$sample_id,
-         sample_type == "Tumor",
-         composition == "Solid Tissue") %>%
+         sample_type == "Tumor") %>%
   mutate(age_at_diagnosis_yr = 
            floor(as.integer(age_at_diagnosis_days)/365)) %>%
-  group_by(Kids_First_Participant_ID, sample_id) %>%
+  group_by(Kids_First_Participant_ID, sample_id, composition) %>%
   summarize(glioma_brain_region = paste(sort(unique(glioma_brain_region)), 
                                         collapse = ", "),
             age_at_diagnosis_yr = paste(sort(unique(age_at_diagnosis_yr)),
@@ -356,6 +341,7 @@ h3_k28_df_biospecimen <- all_data_df %>%
          sample_id,
          Kids_First_Biospecimen_ID_DNA,
          Kids_First_Biospecimen_ID_RNA, 
+         composition,
          BRAF_V600E) %>%
   mutate(molecular_subtype = case_when(
     BRAF_V600E == "p.V600E" ~ "DMG, H3 K28, BRAF V600E",
@@ -399,7 +385,8 @@ h3_g35_df_biospecimen <- all_data_df %>%
   select(Kids_First_Participant_ID,
          sample_id,
          Kids_First_Biospecimen_ID_DNA,
-         Kids_First_Biospecimen_ID_RNA) %>%
+         Kids_First_Biospecimen_ID_RNA,
+         composition) %>%
   mutate(molecular_subtype = "HGG, H3 G35")
 ```
 
@@ -426,7 +413,8 @@ idh_df_biospecimen <- all_data_df %>%
   select(Kids_First_Participant_ID,
          sample_id,
          Kids_First_Biospecimen_ID_DNA,
-         Kids_First_Biospecimen_ID_RNA) %>%
+         Kids_First_Biospecimen_ID_RNA,
+         composition) %>%
   mutate(molecular_subtype = "HGG, IDH")
 ```
 
@@ -495,7 +483,8 @@ braf_df_biospecimen <- all_data_df %>%
   select(Kids_First_Participant_ID,
          sample_id,
          Kids_First_Biospecimen_ID_DNA,
-         Kids_First_Biospecimen_ID_RNA) %>%
+         Kids_First_Biospecimen_ID_RNA,
+         composition) %>%
   mutate(molecular_subtype = "BRAF V600E")
 ```
 
@@ -511,8 +500,11 @@ molecular_subtype_table <- bind_rows(h3_g35_df_biospecimen,
 
 # We'll add HGG, H3 wildtype values in cases that do not yet have labels
 molecular_subtype_table <- all_data_df %>%
-  select(Kids_First_Participant_ID, sample_id,
-         Kids_First_Biospecimen_ID_DNA, Kids_First_Biospecimen_ID_DNA) %>%
+  select(Kids_First_Participant_ID, 
+         sample_id,
+         Kids_First_Biospecimen_ID_DNA, 
+         Kids_First_Biospecimen_ID_RNA,
+         composition) %>%
   left_join(molecular_subtype_table) %>%
   distinct() %>%
   replace_na(list(molecular_subtype = "HGG, H3 wildtype"))
