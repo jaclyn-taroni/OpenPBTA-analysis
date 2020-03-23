@@ -47,7 +47,8 @@ We will need the clinical/histologies file and the defining lesions file to dist
 
 ```{r message=FALSE}
 histologies_df <- read_tsv(file.path(root_dir, "data",
-                                     "pbta-histologies.tsv"))
+                                     "pbta-histologies.tsv"),
+                           guess_max = 10000)
 defining_lesions_df <- read_tsv(file.path(results_dir, 
                                           "HGG_defining_lesions.tsv"))
 ```
@@ -69,8 +70,7 @@ hgg_metadata_df <- histologies_df %>%
   dplyr::filter(
     short_histology == "HGAT" |
       sample_id %in% hgg_lesions_df$sample_id,
-    sample_type == "Tumor",
-    composition == "Solid Tissue"
+    sample_type == "Tumor"
   )
 ```
 
@@ -130,11 +130,14 @@ We are using consensus copy number data data that has been annotated via the [`f
 Note that a gene may have evidence for two kinds of copy number alteration (e.g., both _loss_ and _gain_) in these data, but no longer see instances of this when using the consensus data for these samples.
 
 ```{r}
-# Select only the ID information, for use in joining below
+# Select only the information that identifies each sample, 
+# for use in joining below
 cn_df_ids <- cn_df %>%  
   select(sample_id, 
          Kids_First_Biospecimen_ID = biospecimen_id,
-         Kids_First_Participant_ID)
+         Kids_First_Participant_ID,
+         composition) %>%
+  distinct()
 
 # Filter focal CN data for PDGFRA, PTEN and MYCN status
 cn_df_genes <- cn_df %>%
@@ -144,11 +147,10 @@ cn_df_genes <- cn_df %>%
 
 # Summarize the data to have a single row per sample where _all_ kinds of copy number alterations are present.
 cn_df_genes_status <- cn_df_genes %>% 
-  group_by(gene_symbol, sample_id, Kids_First_Biospecimen_ID) %>% 
+  group_by(gene_symbol, sample_id, Kids_First_Biospecimen_ID, composition) %>% 
   summarize(full_status = paste(status, collapse=", ")) %>% 
   spread(gene_symbol, full_status) %>% 
   right_join(cn_df_ids) %>%
-  distinct() %>%
   replace_na(list(PDGFRA = "neutral", 
                   PTEN = "neutral", 
                   MYCN = "neutral")) %>% 
@@ -159,7 +161,8 @@ cn_df_genes_status <- cn_df_genes %>%
   # Arrange order of columns
   dplyr::select(sample_id, 
                 Kids_First_Biospecimen_ID, 
-                Kids_First_Participant_ID, 
+                Kids_First_Participant_ID,
+                composition,
                 everything())
 
 head(cn_df_genes_status, n = 10)
@@ -186,16 +189,6 @@ gistic_status_df <- gistic_df %>%
             )))
 
 head(gistic_status_df, n = 10)
-```
-
-Add in participant IDs.
-
-```{r}
-gistic_status_df <- hgg_metadata_df %>% 
-  select(Kids_First_Biospecimen_ID,
-         Kids_First_Participant_ID,
-         sample_id) %>%
-  right_join(gistic_status_df)
 ```
 
 ## Join Together
