@@ -46,8 +46,7 @@ if (!dir.exists(results_dir)) {
 # Read in metadata
 metadata <-
   readr::read_tsv(file.path(root_dir, "data", "pbta-histologies.tsv")) %>%
-  dplyr::filter(sample_type == "Tumor",
-                composition == "Solid Tissue") 
+  dplyr::filter(sample_type == "Tumor") 
 
 # Select wanted columns in metadata for merging and assign to a new object
 select_metadata <- metadata %>%
@@ -56,7 +55,8 @@ select_metadata <- metadata %>%
                 Kids_First_Biospecimen_ID,
                 broad_histology,
                 short_histology,
-                integrated_diagnosis)
+                integrated_diagnosis,
+                composition)
 
 # Read in snv consensus mutation data
 snv_df <-
@@ -120,9 +120,10 @@ snv_lesions_df <- select_metadata %>%
   dplyr::select(
     dplyr::ends_with("ID"),
     dplyr::starts_with("H"),
+    composition,
     broad_histology,
     short_histology,
-    integrated_diagnosis
+    integrated_diagnosis,
   ) %>%
   dplyr::mutate(
     disease_type_reclassified = dplyr::case_when(
