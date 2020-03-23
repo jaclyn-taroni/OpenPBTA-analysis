@@ -77,7 +77,7 @@ unzip(file.path(root_dir, "data", "pbta-cnv-consensus-gistic.zip"),
       exdir = file.path(root_dir, "data"),
       files = file.path("pbta-cnv-consensus-gistic", "broad_values_by_arm.txt"))
 
-gistic_df <- data.table::fread(file.path(root_dir, 
+gistic_df <- data.table::fread(file.path(root_dir,
                                          "data",
                                          "pbta-cnv-consensus-gistic",
                                          "broad_values_by_arm.txt"),
@@ -128,8 +128,7 @@ hgg_metadata_df <- metadata %>%
   dplyr::filter(
     short_histology == "HGAT" |
       sample_id %in% hgg_lesions_df$sample_id,
-    sample_type == "Tumor",
-    composition == "Solid Tissue"
+    sample_type == "Tumor"
   )
 
 #### Filter expression data ----------------------------------------------------
