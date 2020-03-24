@@ -41,17 +41,15 @@ scratch_dir <- file.path("..", "..", "scratch")
 ### Read in data
 
 ```{r}
-# TODO: update once the consensus GISTIC results are in the data release
-download.file(url = "https://github.com/AlexsLemonade/OpenPBTA-analysis/files/4123481/2019-01-28-consensus-cnv.zip",
-              destfile = file.path(scratch_dir, "2019-01-28-consensus-cnv.zip"))
-unzip(file.path(scratch_dir, "2019-01-28-consensus-cnv.zip"),
-      exdir = scratch_dir,
-      files = file.path("2019-01-28-consensus-cnv", "broad_values_by_arm.txt"),
-      overwrite = FALSE)
-gistic_df <- data.table::fread(file.path(scratch_dir,
-                                         "2019-01-28-consensus-cnv",
-                                         "broad_values_by_arm.txt"),
-                               data.table = FALSE)
+# Unzip and set up GISTIC results folders and files.
+cohort_gistic_dir <- file.path(data_dir, "pbta-cnv-consensus-gistic")
+cohort_gistic_zip <- file.path(data_dir, "pbta-cnv-consensus-gistic.zip")
+if (!dir.exists(cohort_gistic_dir)) {
+  unzip(cohort_gistic_zip, 
+        exdir = data_dir)
+}
+
+gistic_df <- read_tsv(file.path(cohort_gistic_dir, "broad_values_by_arm.txt"))
 ```
 
 ## Look at features
