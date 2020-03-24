@@ -485,7 +485,7 @@ braf_df_biospecimen <- all_data_df %>%
          Kids_First_Biospecimen_ID_DNA,
          Kids_First_Biospecimen_ID_RNA,
          composition) %>%
-  mutate(molecular_subtype = "HGG, BRAF V600E")
+  mutate(molecular_subtype = "BRAF V600E")
 ```
 
 ## Biospecimen Table
